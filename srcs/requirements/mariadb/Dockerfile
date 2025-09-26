@@ -1,26 +1,24 @@
-FROM mariadb:10.11
+# Let's start from the debian image
+FROM debian:bullseye
 
-# Install necessary packages
-RUN apt-get update && apt-get install -y \
-    && rm -rf /var/lib/apt/lists/*
+# Install mariadb
+RUN apt-get update && apt-get install -y mariadb-server mariadb-client
 
-# Copy custom configuration
-COPY conf/50-server.cnf /etc/mysql/mariadb.conf.d/50-server.cnf
+ARG DB_ADMIN_PASSWORD
+ARG DB_USERNAME
+ARG DB_PASSWORD
 
-# Copy initialization scripts
-COPY tools/init.sql /docker-entrypoint-initdb.d/init.sql
-
-# Set proper permissions
-RUN chown -R mysql:mysql /var/lib/mysql
-
-# Create necessary directories
-RUN mkdir -p /var/lib/mysql \
-    && mkdir -p /var/log/mysql \
-    && mkdir -p /etc/mysql/conf.d
-
-# Expose port 3306
+# Initialize MariaDB and set up database
+RUN service mariadb start && \
+    sleep 5 && \
+    mysqladmin -u root password ${DB_ADMIN_PASSWORD} && \
+    mysql -uroot -p${DB_ADMIN_PASSWORD} -e "CREATE DATABASE wordpress; \
+    CREATE USER '${DB_USERNAME}'@'%' IDENTIFIED BY '${DB_PASSWORD}'; \
+    GRANT ALL ON wordpress.* TO '${DB_USERNAME}'@'%'; \
+    FLUSH PRIVILEGES;" && \
+    service mariadb stop
+# Choose the port to listen
 EXPOSE 3306
 
-# Use the official MariaDB entrypoint
-ENTRYPOINT ["docker-entrypoint.sh"]
-CMD ["mysqld"]
+# Start mariadb
+CMD ["mysqld", "--bind-address=0.0.0.0"]

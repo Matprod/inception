@@ -1,99 +1,68 @@
-# **************************************************************************** #
-#                                                                              #
-#                                                         :::      ::::::::    #
-#    Makefile                                           :+:      :+:    :+:    #
-#                                                     +:+ +:+         +:+      #
-#    By: matprod <matprod@student.42.fr>            +#+  +:+       +#+         #
-#                                                 +#+#+#+#+#+   +#+            #
-#    Created: 2024/01/01 12:00:00 by matprod           #+#    #+#              #
-#    Updated: 2024/01/01 12:00:00 by matprod          ###   ########.fr        #
-#                                                                              #
-# **************************************************************************** #
+# Colors for output
+GREEN = \033[32m
+YELLOW = \033[33m
+RED = \033[31m
+BLUE = \033[34m
+RESET = \033[0m
 
-# Colors
-GREEN		= \033[0;32m
-YELLOW		= \033[0;33m
-RED			= \033[0;31m
-BLUE		= \033[0;34m
-NC			= \033[0m # No Color
+# Configuration
+DOCKER_COMPOSE_FILE = ./srcs/docker-compose.yml
 
-# Variables
-DOCKER_COMPOSE = docker compose
-SRCS_DIR = srcs
+# Setup directories and permissions
+setup-dirs:
+	@printf "$(GREEN)[+] Creating volumes' directories...$(RESET)\n"
+	@sudo mkdir -p /home/matprod/data/mysql
+	@sudo mkdir -p /home/matprod/data/wordpress
+	@sudo chmod 777 /home/matprod/data/mysql
+	@sudo chmod 777 /home/matprod/data/wordpress
 
-.PHONY: all build up down restart logs clean fclean re setup
+# Start containers
+up: setup-dirs
+	@printf "$(GREEN)[+] Starting containers...$(RESET)\n"
+	@docker compose -f $(DOCKER_COMPOSE_FILE) up -d --build
+	@printf "$(GREEN)[+] Containers started.$(RESET)\n"
 
-all: setup build up
+# Build and start containers
+all: build up
 
-setup:
-	@echo "$(BLUE)Setting up directories...$(NC)"
-	@mkdir -p /home/matprod/data/wordpress
-	@mkdir -p /home/matprod/data/mariadb
-	@echo "$(GREEN)Directories created successfully!$(NC)"
-
-build:
-	@echo "$(BLUE)Building Docker images...$(NC)"
-	@cd $(SRCS_DIR) && $(DOCKER_COMPOSE) build --no-cache
-	@echo "$(GREEN)Docker images built successfully!$(NC)"
-
-up:
-	@echo "$(BLUE)Starting containers...$(NC)"
-	@cd $(SRCS_DIR) && $(DOCKER_COMPOSE) up -d
-	@echo "$(GREEN)Containers started successfully!$(NC)"
-
+# Stop containers
 down:
-	@echo "$(YELLOW)Stopping containers...$(NC)"
-	@cd $(SRCS_DIR) && $(DOCKER_COMPOSE) down
-	@echo "$(GREEN)Containers stopped successfully!$(NC)"
+	@printf "$(YELLOW)[+] Stopping containers...$(RESET)\n"
+	@docker compose -f $(DOCKER_COMPOSE_FILE) down
+	@printf "$(GREEN)[+] Containers stopped.$(RESET)\n"
 
+# Restart containers
 restart: down up
 
+# Build images
+build:
+	@printf "$(GREEN)[+] Building images...$(RESET)\n"
+	@docker compose -f $(DOCKER_COMPOSE_FILE) build --no-cache
+	@printf "$(GREEN)[+] Images built.$(RESET)\n"
+
+# Show logs
 logs:
-	@cd $(SRCS_DIR) && $(DOCKER_COMPOSE) logs -f
+	@docker compose -f $(DOCKER_COMPOSE_FILE) logs -f
 
-clean:
-	@echo "$(YELLOW)Cleaning up containers and volumes...$(NC)"
-	@cd $(SRCS_DIR) && $(DOCKER_COMPOSE) down -v
-	@docker system prune -f
-	@echo "$(GREEN)Clean completed!$(NC)"
-
-fclean: clean
-	@echo "$(RED)Force cleaning everything...$(NC)"
-	@cd $(SRCS_DIR) && $(DOCKER_COMPOSE) down -v --rmi all
-	@docker system prune -af
-	@sudo rm -rf /home/matprod/data
-	@echo "$(GREEN)Force clean completed!$(NC)"
-
-re: fclean all
-
+# Show container status
 status:
-	@echo "$(BLUE)Container status:$(NC)"
-	@cd $(SRCS_DIR) && $(DOCKER_COMPOSE) ps
+	@printf "$(BLUE)[+] Container Status:$(RESET)\n"
+	@docker compose -f $(DOCKER_COMPOSE_FILE) ps
 
-# Individual service management
-nginx-logs:
-	@cd $(SRCS_DIR) && $(DOCKER_COMPOSE) logs nginx
+# Clean containers and images
+clean:
+	@printf "$(YELLOW)[+] Stopping containers...$(RESET)\n"
+	@docker compose -f $(DOCKER_COMPOSE_FILE) down -v
+	@printf "$(GREEN)[+] Containers stopped.$(RESET)\n"
+	@printf "$(YELLOW)[+] Removing images...$(RESET)\n"
+	@docker rmi -f $$(docker images -q) 2>/dev/null || true
+	@printf "$(GREEN)[+] Images removed.$(RESET)\n"
 
-wordpress-logs:
-	@cd $(SRCS_DIR) && $(DOCKER_COMPOSE) logs wordpress
+# Full clean (containers, images, volumes, networks)
+fclean: clean
+	@printf "$(RED)[+] Full cleanup...$(RESET)\n"
+	@docker system prune -af --volumes
+	@sudo rm -rf /home/matprod/data/mysql/* /home/matprod/data/wordpress/*
+	@printf "$(GREEN)[+] Full cleanup completed.$(RESET)\n"
 
-mariadb-logs:
-	@cd $(SRCS_DIR) && $(DOCKER_COMPOSE) logs mariadb
-
-# Help
-help:
-	@echo "$(BLUE)Available commands:$(NC)"
-	@echo "  all          - Setup, build and start all services"
-	@echo "  build        - Build Docker images"
-	@echo "  up           - Start all containers"
-	@echo "  down         - Stop all containers"
-	@echo "  restart      - Restart all containers"
-	@echo "  logs         - Show logs for all services"
-	@echo "  clean        - Stop containers and clean up"
-	@echo "  fclean       - Remove everything (images, volumes, data)"
-	@echo "  re           - Full rebuild"
-	@echo "  status       - Show container status"
-	@echo "  nginx-logs   - Show NGINX logs"
-	@echo "  wordpress-logs - Show WordPress logs"
-	@echo "  mariadb-logs - Show MariaDB logs"
-	@echo "  help         - Show this help message"
+.PHONY: up down restart build all logs status clean fclean setup-dirs
