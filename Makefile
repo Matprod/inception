@@ -8,6 +8,9 @@ RESET = \033[0m
 # Configuration
 DOCKER_COMPOSE_FILE = ./srcs/docker-compose.yml
 
+# Build and start containers
+all: build up
+
 # Setup directories and permissions
 setup-dirs:
 	@printf "$(GREEN)[+] Creating volumes' directories...$(RESET)\n"
@@ -22,8 +25,6 @@ up: setup-dirs
 	@docker compose -f $(DOCKER_COMPOSE_FILE) up -d --build
 	@printf "$(GREEN)[+] Containers started.$(RESET)\n"
 
-# Build and start containers
-all: build up
 
 # Stop containers
 down:
