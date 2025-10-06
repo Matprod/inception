@@ -8,15 +8,18 @@ ARG DB_ADMIN_PASSWORD
 ARG DB_USERNAME
 ARG DB_PASSWORD
 
-# Initialize MariaDB and set up database
-RUN service mariadb start && \
-    sleep 5 && \
-    mysqladmin -u root password ${DB_ADMIN_PASSWORD} && \
-    mysql -uroot -p${DB_ADMIN_PASSWORD} -e "CREATE DATABASE wordpress; \
-    CREATE USER '${DB_USERNAME}'@'%' IDENTIFIED BY '${DB_PASSWORD}'; \
-    GRANT ALL ON wordpress.* TO '${DB_USERNAME}'@'%'; \
-    FLUSH PRIVILEGES;" && \
-    service mariadb stop
+# Initialiser MariaDB et configurer la sécurité
+RUN service mariadb start && sleep 5 && \
+    # Méthode correcte pour définir le mot de passe root dans MariaDB
+    mysql -uroot -e "ALTER USER 'root'@'localhost' IDENTIFIED BY '${DB_ADMIN_PASSWORD}'; FLUSH PRIVILEGES;" && \
+    # Créer la base et l'utilisateur WordPress
+    mysql -uroot -p${DB_ADMIN_PASSWORD} -e "CREATE DATABASE IF NOT EXISTS wordpress; \
+        CREATE USER IF NOT EXISTS '${DB_USERNAME}'@'%' IDENTIFIED BY '${DB_PASSWORD}'; \
+        GRANT ALL PRIVILEGES ON wordpress.* TO '${DB_USERNAME}'@'%'; \
+        FLUSH PRIVILEGES;" && \
+    # Arrêter MariaDB proprement
+    mysqladmin -u root -p${DB_ADMIN_PASSWORD} shutdown
+
 # Choose the port to listen
 EXPOSE 3306
 
