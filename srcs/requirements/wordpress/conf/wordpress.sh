@@ -11,7 +11,6 @@ if [ ! -f /var/www/html/wordpress/wp-config.php ]; then
 		--admin_password="$WP_ADMIN_PASSWORD" --admin_email="$WP_ADMIN_MAIL" --path="/var/www/html/wordpress"
 fi
 
-# Vérifier et créer l'utilisateur non-admin s'il n'existe pas
 if ! wp user exists "$WP_USER_USERNAME" --allow-root --path="/var/www/html/wordpress" 2>/dev/null; then
     echo "Creating non-admin user: $WP_USER_USERNAME"
     wp user create "$WP_USER_USERNAME" "$WP_USER_MAIL" --user_pass="$WP_USER_PASSWORD" \

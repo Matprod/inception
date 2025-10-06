@@ -66,4 +66,8 @@ fclean: clean
 	@sudo rm -rf /home/matprod/data/mysql/* /home/matprod/data/wordpress/*
 	@printf "$(GREEN)[+] Full cleanup completed.$(RESET)\n"
 
-.PHONY: up down restart build all logs status clean fclean setup-dirs
+volume:
+	@printf "$(BLUE)[+] Docker Volumes:$(RESET)\n"
+	@docker volume ls
+
+.PHONY: up down restart build all logs status volume clean fclean setup-dirs
